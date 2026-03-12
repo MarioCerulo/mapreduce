@@ -15,11 +15,32 @@ type KeyValue struct {
 	Key, Value string
 }
 
-func Map(key, value string) []KeyValue {
+type TaskType int
+
+const (
+	MapTask TaskType = iota
+	ReduceTask
+)
+
+type Task struct {
+	taskType   TaskType
+	Key        string
+	MapVal     string
+	ReduceVals []string
+}
+
+type Job interface {
+	Map(string, string) []KeyValue
+	Reduce(string, []string) string
+}
+
+type WordCountJob struct{}
+
+func (WordCountJob) Map(key, value string) []KeyValue {
 	var kv []KeyValue
 	for word := range strings.FieldsSeq(value) {
 		word = strings.Map(func(r rune) rune {
-			if unicode.IsLetter(r) {
+			if unicode.IsLetter(r) || unicode.IsNumber(r) {
 				return r
 			}
 			return -1
@@ -33,8 +54,32 @@ func Map(key, value string) []KeyValue {
 	return kv
 }
 
-func Reduce(key string, vals []string) string {
+func (WordCountJob) Reduce(key string, vals []string) string {
 	return strconv.Itoa(len(vals))
+}
+
+type Worker struct {
+	job Job
+}
+
+func NewWorker(job Job) Worker {
+	return Worker{
+		job: job,
+	}
+}
+
+func (w Worker) Run(task Task) []KeyValue {
+	var res []KeyValue
+	switch task.taskType {
+	case MapTask:
+		res = w.job.Map(task.Key, task.MapVal)
+
+	case ReduceTask:
+		res = []KeyValue{
+			{Key: task.Key, Value: w.job.Reduce(task.Key, task.ReduceVals)},
+		}
+	}
+	return res
 }
 
 func main() {
@@ -49,7 +94,9 @@ func main() {
 		panic(err)
 	}
 
-	mapped := Map("input.txt", string(inputText))
+	job := WordCountJob{}
+	w := NewWorker(job)
+	mapped := w.Run(Task{taskType: MapTask, Key: "input.txt", MapVal: string(inputText)})
 
 	slices.SortFunc(mapped, func(a, b KeyValue) int {
 		return cmp.Compare(a.Key, b.Key)
@@ -64,7 +111,11 @@ func main() {
 			i++
 		}
 
-		res = append(res, KeyValue{Key: key, Value: Reduce(key, vals)})
+		res = append(res, w.Run(Task{
+			taskType:   ReduceTask,
+			Key:        key,
+			ReduceVals: vals,
+		})[0])
 	}
 
 	for _, kv := range res {
