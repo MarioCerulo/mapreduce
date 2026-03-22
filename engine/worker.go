@@ -1,14 +1,9 @@
 package engine
 
-type taskType int
-
-const (
-	mapTask taskType = iota
-	reduceTask
-)
+import "github.com/MarioCerulo/mapreduce/engine/types"
 
 type task struct {
-	kind       taskType
+	kind       types.TaskKind
 	key        string
 	mapVal     string
 	reduceVals []string
@@ -24,14 +19,14 @@ func newWorker(job Job) worker {
 	}
 }
 
-func (w worker) run(task task) []KeyValue {
-	var res []KeyValue
+func (w worker) run(task task) []types.KeyValue {
+	var res []types.KeyValue
 	switch task.kind {
-	case mapTask:
+	case types.MapTask:
 		res = w.job.Map(task.key, task.mapVal)
 
-	case reduceTask:
-		res = []KeyValue{
+	case types.ReduceTask:
+		res = []types.KeyValue{
 			{Key: task.key, Value: w.job.Reduce(task.key, task.reduceVals)},
 		}
 	}

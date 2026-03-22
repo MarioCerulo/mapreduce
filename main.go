@@ -7,12 +7,13 @@ import (
 	"unicode"
 
 	"github.com/MarioCerulo/mapreduce/engine"
+	"github.com/MarioCerulo/mapreduce/engine/types"
 )
 
 type WordCountJob struct{}
 
-func (WordCountJob) Map(key, value string) []engine.KeyValue {
-	var kv []engine.KeyValue
+func (WordCountJob) Map(key, value string) []types.KeyValue {
+	var kv []types.KeyValue
 	for word := range strings.FieldsSeq(value) {
 		word = strings.Map(func(r rune) rune {
 			if unicode.IsLetter(r) || unicode.IsNumber(r) {
@@ -24,7 +25,7 @@ func (WordCountJob) Map(key, value string) []engine.KeyValue {
 			continue
 		}
 		word = strings.ToLower(word)
-		kv = append(kv, engine.KeyValue{Key: word, Value: "1"})
+		kv = append(kv, types.KeyValue{Key: word, Value: "1"})
 	}
 	return kv
 }

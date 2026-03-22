@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/MarioCerulo/mapreduce/engine"
+	"github.com/MarioCerulo/mapreduce/engine/types"
 )
 
 type UppercaseJob struct{}
 
-func (UppercaseJob) Map(key, val string) []engine.KeyValue {
-	return []engine.KeyValue{
+func (UppercaseJob) Map(key, val string) []types.KeyValue {
+	return []types.KeyValue{
 		{Key: key, Value: strings.ToUpper(val)},
 	}
 }

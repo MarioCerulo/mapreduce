@@ -1,10 +1,12 @@
 package engine
 
-type KeyValue struct {
-	Key, Value string
-}
+import "github.com/MarioCerulo/mapreduce/engine/types"
 
+// Job defines the user-supplied logic for a MapReduce computation.
+//
+// Map is called once per input chunk and emits intermediate key-value pairs.
+// Reduce is called once per unique key with all associated values and returns a single result.
 type Job interface {
-	Map(string, string) []KeyValue
+	Map(string, string) []types.KeyValue
 	Reduce(string, []string) string
 }

@@ -5,9 +5,11 @@ import (
 	"io"
 	"os"
 	"slices"
+
+	"github.com/MarioCerulo/mapreduce/engine/types"
 )
 
-func MapReduce(inputFile string, job Job) ([]KeyValue, error) {
+func MapReduce(inputFile string, job Job) ([]types.KeyValue, error) {
 	file, err := os.Open(inputFile)
 	if err != nil {
 		return nil, err
@@ -20,13 +22,13 @@ func MapReduce(inputFile string, job Job) ([]KeyValue, error) {
 	}
 
 	w := newWorker(job)
-	mapped := w.run(task{kind: mapTask, key: inputFile, mapVal: string(inputText)})
+	mapped := w.run(task{kind: types.MapTask, key: inputFile, mapVal: string(inputText)})
 
-	slices.SortFunc(mapped, func(a, b KeyValue) int {
+	slices.SortFunc(mapped, func(a, b types.KeyValue) int {
 		return cmp.Compare(a.Key, b.Key)
 	})
 
-	var res []KeyValue
+	var res []types.KeyValue
 	for i := 0; i < len(mapped); {
 		key := mapped[i].Key
 		var vals []string
@@ -36,7 +38,7 @@ func MapReduce(inputFile string, job Job) ([]KeyValue, error) {
 		}
 
 		res = append(res, w.run(task{
-			kind:       reduceTask,
+			kind:       types.ReduceTask,
 			key:        key,
 			reduceVals: vals,
 		})[0])
