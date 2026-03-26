@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/MarioCerulo/mapreduce/engine"
-	pb "github.com/MarioCerulo/mapreduce/engine/rpc"
+	pb "github.com/MarioCerulo/mapreduce/rpc"
 	"google.golang.org/grpc"
 )
 
