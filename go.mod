@@ -1,6 +1,6 @@
 module github.com/MarioCerulo/mapreduce
 
-go 1.25.5
+go 1.26.1
 
 require (
 	google.golang.org/grpc v1.79.2

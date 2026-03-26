@@ -16,13 +16,14 @@ func TestCoordinator(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		go c.Run(t.Context())
 
 		task, err := c.RequestTask("worker")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		expected := types.Task{ID: 0, Kind: types.MapTask, Files: []string{"input.txt"}}
+		expected := types.Task{ID: 0, Kind: types.MapTask, NReducers: 1, Files: []string{"input.txt"}}
 		if !reflect.DeepEqual(task, expected) {
 			t.Fatalf("expected %+v, got %+v", expected, task)
 		}
@@ -53,6 +54,7 @@ func TestCoordinator(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		go c.Run(t.Context())
 
 		mapT1, err := c.RequestTask("map-worker")
 		if err != nil {
@@ -128,6 +130,7 @@ func TestCoordinator(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		go c.Run(t.Context())
 
 		mapT1, err := c.RequestTask("worker-0")
 		if err != nil {
@@ -190,6 +193,7 @@ func TestCoordinator(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		go c.Run(t.Context())
 
 		task, err := c.RequestTask("worker-0")
 		if err != nil {
@@ -221,6 +225,7 @@ func TestCoordinator(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		go c.Run(t.Context())
 
 		c.RequestTask("worker")
 		if err := c.ReportCompletion(3); err == nil {

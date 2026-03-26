@@ -76,58 +76,9 @@ func (TaskType) EnumDescriptor() ([]byte, []int) {
 	return file_coordinator_proto_rawDescGZIP(), []int{0}
 }
 
-type TaskStatus int32
-
-const (
-	TaskStatus_TASKSTATUS_UNSPECIFIED TaskStatus = 0
-	TaskStatus_TASKSTATUS_COMPLETED   TaskStatus = 1
-	TaskStatus_TASKSTATUS_FAILED      TaskStatus = 2
-)
-
-// Enum value maps for TaskStatus.
-var (
-	TaskStatus_name = map[int32]string{
-		0: "TASKSTATUS_UNSPECIFIED",
-		1: "TASKSTATUS_COMPLETED",
-		2: "TASKSTATUS_FAILED",
-	}
-	TaskStatus_value = map[string]int32{
-		"TASKSTATUS_UNSPECIFIED": 0,
-		"TASKSTATUS_COMPLETED":   1,
-		"TASKSTATUS_FAILED":      2,
-	}
-)
-
-func (x TaskStatus) Enum() *TaskStatus {
-	p := new(TaskStatus)
-	*p = x
-	return p
-}
-
-func (x TaskStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (TaskStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_coordinator_proto_enumTypes[1].Descriptor()
-}
-
-func (TaskStatus) Type() protoreflect.EnumType {
-	return &file_coordinator_proto_enumTypes[1]
-}
-
-func (x TaskStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use TaskStatus.Descriptor instead.
-func (TaskStatus) EnumDescriptor() ([]byte, []int) {
-	return file_coordinator_proto_rawDescGZIP(), []int{1}
-}
-
 type TaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkerId      int32                  `protobuf:"varint,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
+	WorkerId      string                 `protobuf:"bytes,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -162,22 +113,21 @@ func (*TaskRequest) Descriptor() ([]byte, []int) {
 	return file_coordinator_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *TaskRequest) GetWorkerId() int32 {
+func (x *TaskRequest) GetWorkerId() string {
 	if x != nil {
 		return x.WorkerId
 	}
-	return 0
+	return ""
 }
 
 type TaskResponse struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	TaskId           int32                  `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Type             TaskType               `protobuf:"varint,2,opt,name=type,proto3,enum=coordinator.TaskType" json:"type,omitempty"`
-	Key              string                 `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
-	NReducers        *int32                 `protobuf:"varint,4,opt,name=n_reducers,json=nReducers,proto3,oneof" json:"n_reducers,omitempty"`               // Only relevant for Map tasks
-	IntermediateFile []string               `protobuf:"bytes,5,rep,name=intermediate_file,json=intermediateFile,proto3" json:"intermediate_file,omitempty"` // Only relevant for Reduce tasks
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        int32                  `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Type          TaskType               `protobuf:"varint,2,opt,name=type,proto3,enum=coordinator.TaskType" json:"type,omitempty"`
+	NReducers     *int32                 `protobuf:"varint,3,opt,name=n_reducers,json=nReducers,proto3,oneof" json:"n_reducers,omitempty"` // Only relevant for Map tasks
+	Files         []string               `protobuf:"bytes,4,rep,name=files,proto3" json:"files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TaskResponse) Reset() {
@@ -224,13 +174,6 @@ func (x *TaskResponse) GetType() TaskType {
 	return TaskType_TASKTYPE_UNSPECIFIED
 }
 
-func (x *TaskResponse) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
 func (x *TaskResponse) GetNReducers() int32 {
 	if x != nil && x.NReducers != nil {
 		return *x.NReducers
@@ -238,9 +181,9 @@ func (x *TaskResponse) GetNReducers() int32 {
 	return 0
 }
 
-func (x *TaskResponse) GetIntermediateFile() []string {
+func (x *TaskResponse) GetFiles() []string {
 	if x != nil {
-		return x.IntermediateFile
+		return x.Files
 	}
 	return nil
 }
@@ -248,9 +191,6 @@ func (x *TaskResponse) GetIntermediateFile() []string {
 type Report struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        int32                  `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	WorkerId      int32                  `protobuf:"varint,2,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
-	Type          TaskType               `protobuf:"varint,3,opt,name=type,proto3,enum=coordinator.TaskType" json:"type,omitempty"`
-	Status        TaskStatus             `protobuf:"varint,4,opt,name=status,proto3,enum=coordinator.TaskStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -290,27 +230,6 @@ func (x *Report) GetTaskId() int32 {
 		return x.TaskId
 	}
 	return 0
-}
-
-func (x *Report) GetWorkerId() int32 {
-	if x != nil {
-		return x.WorkerId
-	}
-	return 0
-}
-
-func (x *Report) GetType() TaskType {
-	if x != nil {
-		return x.Type
-	}
-	return TaskType_TASKTYPE_UNSPECIFIED
-}
-
-func (x *Report) GetStatus() TaskStatus {
-	if x != nil {
-		return x.Status
-	}
-	return TaskStatus_TASKSTATUS_UNSPECIFIED
 }
 
 type Ack struct {
@@ -355,32 +274,23 @@ const file_coordinator_proto_rawDesc = "" +
 	"\n" +
 	"\x11coordinator.proto\x12\vcoordinator\"*\n" +
 	"\vTaskRequest\x12\x1b\n" +
-	"\tworker_id\x18\x01 \x01(\x05R\bworkerId\"\xc4\x01\n" +
+	"\tworker_id\x18\x01 \x01(\tR\bworkerId\"\x9b\x01\n" +
 	"\fTaskResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x05R\x06taskId\x12)\n" +
-	"\x04type\x18\x02 \x01(\x0e2\x15.coordinator.TaskTypeR\x04type\x12\x10\n" +
-	"\x03key\x18\x03 \x01(\tR\x03key\x12\"\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x15.coordinator.TaskTypeR\x04type\x12\"\n" +
 	"\n" +
-	"n_reducers\x18\x04 \x01(\x05H\x00R\tnReducers\x88\x01\x01\x12+\n" +
-	"\x11intermediate_file\x18\x05 \x03(\tR\x10intermediateFileB\r\n" +
-	"\v_n_reducers\"\x9a\x01\n" +
+	"n_reducers\x18\x03 \x01(\x05H\x00R\tnReducers\x88\x01\x01\x12\x14\n" +
+	"\x05files\x18\x04 \x03(\tR\x05filesB\r\n" +
+	"\v_n_reducers\"!\n" +
 	"\x06Report\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\x05R\x06taskId\x12\x1b\n" +
-	"\tworker_id\x18\x02 \x01(\x05R\bworkerId\x12)\n" +
-	"\x04type\x18\x03 \x01(\x0e2\x15.coordinator.TaskTypeR\x04type\x12/\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x17.coordinator.TaskStatusR\x06status\"\x05\n" +
+	"\atask_id\x18\x01 \x01(\x05R\x06taskId\"\x05\n" +
 	"\x03Ack*q\n" +
 	"\bTaskType\x12\x18\n" +
 	"\x14TASKTYPE_UNSPECIFIED\x10\x00\x12\x10\n" +
 	"\fTASKTYPE_MAP\x10\x01\x12\x13\n" +
 	"\x0fTASKTYPE_REDUCE\x10\x02\x12\x11\n" +
 	"\rTASKTYPE_WAIT\x10\x03\x12\x11\n" +
-	"\rTASKTYPE_DONE\x10\x04*Y\n" +
-	"\n" +
-	"TaskStatus\x12\x1a\n" +
-	"\x16TASKSTATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14TASKSTATUS_COMPLETED\x10\x01\x12\x15\n" +
-	"\x11TASKSTATUS_FAILED\x10\x022\x8c\x01\n" +
+	"\rTASKTYPE_DONE\x10\x042\x8c\x01\n" +
 	"\vCoordinator\x12B\n" +
 	"\vRequestTask\x12\x18.coordinator.TaskRequest\x1a\x19.coordinator.TaskResponse\x129\n" +
 	"\x10ReportCompletion\x12\x13.coordinator.Report\x1a\x10.coordinator.AckB-Z+github.com/MarioCerulo/mapreduce/engine/rpcb\x06proto3"
@@ -397,29 +307,26 @@ func file_coordinator_proto_rawDescGZIP() []byte {
 	return file_coordinator_proto_rawDescData
 }
 
-var file_coordinator_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_coordinator_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_coordinator_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_coordinator_proto_goTypes = []any{
 	(TaskType)(0),        // 0: coordinator.TaskType
-	(TaskStatus)(0),      // 1: coordinator.TaskStatus
-	(*TaskRequest)(nil),  // 2: coordinator.TaskRequest
-	(*TaskResponse)(nil), // 3: coordinator.TaskResponse
-	(*Report)(nil),       // 4: coordinator.Report
-	(*Ack)(nil),          // 5: coordinator.Ack
+	(*TaskRequest)(nil),  // 1: coordinator.TaskRequest
+	(*TaskResponse)(nil), // 2: coordinator.TaskResponse
+	(*Report)(nil),       // 3: coordinator.Report
+	(*Ack)(nil),          // 4: coordinator.Ack
 }
 var file_coordinator_proto_depIdxs = []int32{
 	0, // 0: coordinator.TaskResponse.type:type_name -> coordinator.TaskType
-	0, // 1: coordinator.Report.type:type_name -> coordinator.TaskType
-	1, // 2: coordinator.Report.status:type_name -> coordinator.TaskStatus
-	2, // 3: coordinator.Coordinator.RequestTask:input_type -> coordinator.TaskRequest
-	4, // 4: coordinator.Coordinator.ReportCompletion:input_type -> coordinator.Report
-	3, // 5: coordinator.Coordinator.RequestTask:output_type -> coordinator.TaskResponse
-	5, // 6: coordinator.Coordinator.ReportCompletion:output_type -> coordinator.Ack
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 1: coordinator.Coordinator.RequestTask:input_type -> coordinator.TaskRequest
+	3, // 2: coordinator.Coordinator.ReportCompletion:input_type -> coordinator.Report
+	2, // 3: coordinator.Coordinator.RequestTask:output_type -> coordinator.TaskResponse
+	4, // 4: coordinator.Coordinator.ReportCompletion:output_type -> coordinator.Ack
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_coordinator_proto_init() }
@@ -433,7 +340,7 @@ func file_coordinator_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_coordinator_proto_rawDesc), len(file_coordinator_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      1,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,

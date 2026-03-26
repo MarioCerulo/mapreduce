@@ -17,8 +17,9 @@ const (
 
 // Task is a single unit of work assigned to a worker by the coordinator.
 type Task struct {
-	ID   int
-	Kind TaskKind
+	ID        int
+	Kind      TaskKind
+	NReducers int
 	// Files contains the input chunk path for map tasks,
 	// or intermediate file paths for reduce tasks.
 	Files []string

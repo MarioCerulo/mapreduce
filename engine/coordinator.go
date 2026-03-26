@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -36,6 +37,21 @@ func (q *taskQueue) dequeue() (taskRecord, bool) {
 	return t, true
 }
 
+type taskReply struct {
+	task types.Task
+	err  error
+}
+
+type taskRequest struct {
+	workerID string
+	reply    chan<- taskReply
+}
+
+type compReport struct {
+	taskID int
+	reply  chan<- error
+}
+
 type execPhase int
 
 const (
@@ -54,6 +70,9 @@ type Coordinator struct {
 	pendingTasks    taskQueue
 	inProgressTasks map[int]taskRecord
 	completedTasks  []taskRecord
+
+	requestsCh    chan taskRequest
+	completionsCh chan compReport
 }
 
 // NewCoordinator initializes a job with one map task per input chunk.
@@ -75,7 +94,89 @@ func NewCoordinator(inputChunks []string, numReducers int) (*Coordinator, error)
 		numReducers:     numReducers,
 		pendingTasks:    tasks,
 		inProgressTasks: make(map[int]taskRecord),
+		requestsCh:      make(chan taskRequest),
+		completionsCh:   make(chan compReport),
 	}, nil
+}
+
+// Run handles the coordinator's event loop.
+func (c *Coordinator) Run(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case req := <-c.requestsCh:
+			t, ok := c.pendingTasks.dequeue()
+			if !ok {
+				switch c.phase {
+				case donePhase:
+					req.reply <- taskReply{err: ErrDone}
+					continue
+				case mapPhase:
+					if len(c.inProgressTasks) == 0 {
+						panic("coordinator: empty in-progress tasks during map phase")
+					}
+					req.reply <- taskReply{err: ErrWait}
+					continue
+				case reducePhase:
+					req.reply <- taskReply{err: ErrWait}
+					continue
+				default:
+					panic("coordinator: invalid phase reached")
+				}
+			}
+
+			var task types.Task
+			switch c.phase {
+			case mapPhase:
+				task = types.Task{
+					ID:        t.id,
+					NReducers: c.numReducers,
+					Kind:      types.MapTask,
+					Files:     t.files,
+				}
+			case reducePhase:
+				task = types.Task{
+					ID:    t.id,
+					Kind:  types.ReduceTask,
+					Files: t.files,
+				}
+			}
+
+			t.workerID = req.workerID
+			c.inProgressTasks[t.id] = t
+
+			req.reply <- taskReply{task: task}
+
+		case comp := <-c.completionsCh:
+			t, ok := c.inProgressTasks[comp.taskID]
+			if !ok {
+				comp.reply <- fmt.Errorf("task %d not in progress", comp.taskID)
+				continue
+			}
+
+			c.completedTasks = append(c.completedTasks, t)
+			delete(c.inProgressTasks, t.id)
+
+			if len(c.pendingTasks.tasks) == 0 && len(c.inProgressTasks) == 0 {
+				if c.phase == reducePhase {
+					c.phase = donePhase
+					comp.reply <- nil
+					continue
+				}
+
+				for i := range c.numReducers {
+					var files []string
+					for tn := range len(c.completedTasks) {
+						files = append(files, fmt.Sprintf("inter-%d-%d", tn, i))
+					}
+					c.pendingTasks.enqueue(taskRecord{id: i, files: files})
+				}
+				c.phase = reducePhase
+			}
+			comp.reply <- nil
+		}
+	}
 }
 
 // RequestTask assigns a pending task to a worker.
@@ -83,39 +184,14 @@ func NewCoordinator(inputChunks []string, numReducers int) (*Coordinator, error)
 // Returns [ErrWait] if all current tasks are in progress but not yet complete,
 // or [ErrDone] if the job has finished and the worker should exit.
 func (c *Coordinator) RequestTask(workerID string) (types.Task, error) {
-	t, ok := c.pendingTasks.dequeue()
-	if !ok {
-		switch c.phase {
-		case donePhase:
-			return types.Task{}, ErrDone
-		case mapPhase:
-			if len(c.inProgressTasks) == 0 {
-				panic("coordinator: empty in-progress tasks during map phase")
-			}
-			return types.Task{}, ErrWait
-		case reducePhase:
-			return types.Task{}, ErrWait
-		default:
-			panic("coordinator: invalid phase reached")
-		}
+	reply := make(chan taskReply, 1)
+	req := taskRequest{
+		workerID: workerID,
+		reply:    reply,
 	}
-
-	var kind types.TaskKind
-	switch c.phase {
-	case mapPhase:
-		kind = types.MapTask
-	case reducePhase:
-		kind = types.ReduceTask
-	}
-
-	t.workerID = workerID
-	c.inProgressTasks[t.id] = t
-
-	return types.Task{
-		ID:    t.id,
-		Kind:  kind,
-		Files: t.files,
-	}, nil
+	c.requestsCh <- req
+	res := <-reply
+	return res.task, res.err
 }
 
 // ReportCompletion marks a task as completed and advances the job state.
@@ -124,28 +200,7 @@ func (c *Coordinator) RequestTask(workerID string) (types.Task, error) {
 // transitions to the reduce phase. When all reduce tasks complete, the job is
 // marked as done.
 func (c *Coordinator) ReportCompletion(taskID int) error {
-	t, ok := c.inProgressTasks[taskID]
-	if !ok {
-		return fmt.Errorf("task %d not in progress", taskID)
-	}
-
-	c.completedTasks = append(c.completedTasks, t)
-	delete(c.inProgressTasks, t.id)
-
-	if len(c.pendingTasks.tasks) == 0 && len(c.inProgressTasks) == 0 {
-		if c.phase == reducePhase {
-			c.phase = donePhase
-			return nil
-		}
-
-		for i := range c.numReducers {
-			var files []string
-			for tn := range len(c.completedTasks) {
-				files = append(files, fmt.Sprintf("inter-%d-%d", tn, i))
-			}
-			c.pendingTasks.enqueue(taskRecord{id: i, files: files})
-		}
-		c.phase = reducePhase
-	}
-	return nil
+	reply := make(chan error, 1)
+	c.completionsCh <- compReport{taskID: taskID, reply: reply}
+	return <-reply
 }

@@ -1,46 +1,35 @@
 syntax = "proto3";
 
-option go_package = "github.com/MarioCerulo/mapreduce/engine/rpc";
-
 package coordinator;
 
+option go_package = "github.com/MarioCerulo/mapreduce/engine/rpc";
+
 service Coordinator {
-    rpc RequestTask(TaskRequest) returns (TaskResponse);
-    rpc ReportCompletion(Report) returns (Ack);
+  rpc RequestTask(TaskRequest) returns (TaskResponse);
+  rpc ReportCompletion(Report) returns (Ack);
 }
 
 message TaskRequest {
-    int32 worker_id = 1;
+  string worker_id = 1;
 }
 
 enum TaskType {
-    TASKTYPE_UNSPECIFIED = 0;
-    TASKTYPE_MAP = 1;
-    TASKTYPE_REDUCE = 2;
-    TASKTYPE_WAIT = 3;
-    TASKTYPE_DONE = 4;
+  TASKTYPE_UNSPECIFIED = 0;
+  TASKTYPE_MAP = 1;
+  TASKTYPE_REDUCE = 2;
+  TASKTYPE_WAIT = 3;
+  TASKTYPE_DONE = 4;
 }
 
 message TaskResponse {
-    int32 task_id = 1;
-    TaskType type = 2;
-    string key = 3;
-    optional int32 n_reducers = 4; // Only relevant for Map tasks
-    repeated string intermediate_file = 5; // Only relevant for Reduce tasks
-}
-
-enum TaskStatus {
-    TASKSTATUS_UNSPECIFIED = 0;
-    TASKSTATUS_COMPLETED = 1;
-    TASKSTATUS_FAILED = 2;
+  int32 task_id = 1;
+  TaskType type = 2;
+  optional int32 n_reducers = 3; // Only relevant for Map tasks
+  repeated string files = 4;
 }
 
 message Report {
-    int32 task_id = 1;
-    int32 worker_id = 2;
-
-    TaskType type = 3;
-    TaskStatus status = 4;
+  int32 task_id = 1;
 }
 
 message Ack {}
