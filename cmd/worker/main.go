@@ -1,13 +1,20 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"errors"
+	"log"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"unicode"
 
 	"github.com/MarioCerulo/mapreduce/engine"
 	"github.com/MarioCerulo/mapreduce/engine/types"
+	"github.com/MarioCerulo/mapreduce/rpc"
+	"github.com/MarioCerulo/mapreduce/storage"
 )
 
 type WordCountJob struct{}
@@ -35,11 +42,17 @@ func (WordCountJob) Reduce(key string, vals []string) string {
 }
 
 func main() {
-	res, err := engine.MapReduce("input.txt", WordCountJob{})
+	c, err := rpc.NewClient("127.0.0.1:50051")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	for _, kv := range res {
-		fmt.Printf("%s %s\n", kv.Key, kv.Value)
+	defer c.Close()
+
+	w := engine.NewWorker(WordCountJob{})
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := w.Run(ctx, c, storage.NewStorage("store")); err != nil && !errors.Is(err, context.Canceled) {
+		log.Fatal(err)
 	}
 }

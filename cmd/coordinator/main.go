@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net"
 	"os"
@@ -15,9 +16,10 @@ import (
 
 func main() {
 	input := []string{"input.txt"}
-	nReducers := 1
+	nReducers := flag.Int("reducers", 1, "Number of reducers")
+	flag.Parse()
 
-	c, err := engine.NewCoordinator(input, nReducers)
+	c, err := engine.NewCoordinator(input, *nReducers)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +30,7 @@ func main() {
 
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
-		log.Fatal()
+		log.Fatal(err)
 	}
 	server := grpc.NewServer()
 	coord := pb.NewServer(c)

@@ -1,5 +1,8 @@
-run:
-    @go run main.go
+coordinator reducers='1':
+    @go run cmd/coordinator/main.go --reducers={{reducers}}
+
+worker:
+    @go run cmd/worker/main.go
 
 test:
     @go test -v ./...

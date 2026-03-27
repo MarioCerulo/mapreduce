@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	context "context"
+	"context"
 	"errors"
 
 	"github.com/MarioCerulo/mapreduce/engine"
