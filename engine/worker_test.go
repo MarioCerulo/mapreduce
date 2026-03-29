@@ -81,7 +81,7 @@ func TestWorker(t *testing.T) {
 			store: make(map[string][]types.KeyValue),
 		}
 
-		worker := engine.NewWorker(UppercaseJob{})
+		worker := engine.NewWorker(UppercaseJob{}, newTestLogger())
 
 		if err := worker.Run(t.Context(), c, s); err != nil {
 			t.Fatal(err)

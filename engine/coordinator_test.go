@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"errors"
+	"log/slog"
 	"reflect"
 	"slices"
 	"testing"
@@ -10,9 +11,13 @@ import (
 	"github.com/MarioCerulo/mapreduce/engine/types"
 )
 
+func newTestLogger() *slog.Logger {
+	return slog.New(slog.DiscardHandler)
+}
+
 func TestCoordinator(t *testing.T) {
 	t.Run("complete workflow happy path", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"input.txt"}, 1)
+		c, err := engine.NewCoordinator([]string{"input.txt"}, 1, newTestLogger())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -50,7 +55,7 @@ func TestCoordinator(t *testing.T) {
 	})
 
 	t.Run("multiple chunks and reducers", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"input-0.txt", "input-1.txt"}, 2)
+		c, err := engine.NewCoordinator([]string{"input-0.txt", "input-1.txt"}, 2, newTestLogger())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -126,7 +131,7 @@ func TestCoordinator(t *testing.T) {
 	})
 
 	t.Run("out of order completion", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"chunk-0.txt", "chunk-1.txt"}, 1)
+		c, err := engine.NewCoordinator([]string{"chunk-0.txt", "chunk-1.txt"}, 1, newTestLogger())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,7 +174,7 @@ func TestCoordinator(t *testing.T) {
 	})
 
 	t.Run("empty input slice", func(t *testing.T) {
-		_, err := engine.NewCoordinator([]string{}, 1)
+		_, err := engine.NewCoordinator([]string{}, 1, newTestLogger())
 		if err == nil {
 			t.Fatal("expected an error, got <nil>")
 		}
@@ -177,19 +182,19 @@ func TestCoordinator(t *testing.T) {
 
 	t.Run("less than one reducer", func(t *testing.T) {
 		input := []string{"input.txt"}
-		_, err := engine.NewCoordinator(input, 0)
+		_, err := engine.NewCoordinator(input, 0, newTestLogger())
 		if err == nil {
 			t.Fatal("expected an error, got <nil>")
 		}
 
-		_, err = engine.NewCoordinator(input, -1)
+		_, err = engine.NewCoordinator(input, -1, newTestLogger())
 		if err == nil {
 			t.Fatal("expected an error, got <nil>")
 		}
 	})
 
 	t.Run("return wait on empty pending task list", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"input.txt"}, 1)
+		c, err := engine.NewCoordinator([]string{"input.txt"}, 1, newTestLogger())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -221,7 +226,7 @@ func TestCoordinator(t *testing.T) {
 	})
 
 	t.Run("return error on wrong task id report", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"input.txt"}, 1)
+		c, err := engine.NewCoordinator([]string{"input.txt"}, 1, newTestLogger())
 		if err != nil {
 			t.Fatal(err)
 		}

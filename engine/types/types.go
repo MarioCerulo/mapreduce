@@ -15,6 +15,17 @@ const (
 	ReduceTask
 )
 
+func (t TaskKind) String() string {
+	switch t {
+	case MapTask:
+		return "map"
+	case ReduceTask:
+		return "reduce"
+	default:
+		return "unknown"
+	}
+}
+
 // Task is a single unit of work assigned to a worker by the coordinator.
 type Task struct {
 	ID        int

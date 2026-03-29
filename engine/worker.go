@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -26,8 +27,9 @@ type Storage interface {
 }
 
 type Worker struct {
-	id  string
-	job Job
+	id     string
+	job    Job
+	logger *slog.Logger
 }
 
 func partition(key string, nReducers int) int {
@@ -36,33 +38,45 @@ func partition(key string, nReducers int) int {
 	return (int(h.Sum32()) & 0x7fffffff) % nReducers
 }
 
-func NewWorker(job Job) Worker {
+func NewWorker(job Job, logger *slog.Logger) Worker {
 	b := make([]byte, 32)
 	rand.Read(b)
+	id := hex.EncodeToString(b)
+
+	logger = logger.With(slog.String("component", "worker"), slog.String("worker_id", shortID(id)))
 
 	return Worker{
-		id:  hex.EncodeToString(b),
-		job: job,
+		id:     id,
+		job:    job,
+		logger: logger,
 	}
 }
 
 func (w Worker) Run(ctx context.Context, client CoordinatorClient, store Storage) error {
+	w.logger.Info("worker_started")
 	for {
 		select {
 		case <-ctx.Done():
+			w.logger.Info("worker_stopped")
 			return ctx.Err()
 		default:
 			task, err := client.RequestTask(ctx, w.id)
 			if err != nil {
 				if errors.Is(err, ErrWait) {
+					w.logger.Debug("wait_received")
 					time.Sleep(500 * time.Millisecond)
 					continue
 				}
 				if errors.Is(err, ErrDone) {
+					w.logger.Debug("done_received")
 					return nil
 				}
 				return err
 			}
+			w.logger.Debug("task_received",
+				slog.Int("task_id", task.ID),
+				slog.String("task_type", task.Kind.String()),
+			)
 
 			switch task.Kind {
 			case types.MapTask:
@@ -122,6 +136,11 @@ func (w Worker) Run(ctx context.Context, client CoordinatorClient, store Storage
 					return err
 				}
 			}
+
+			w.logger.Debug("task_completed",
+				slog.Int("task_id", task.ID),
+				slog.String("task_type", task.Kind.String()),
+			)
 		}
 	}
 }
