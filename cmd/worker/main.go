@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"syscall"
 	"unicode"
+
+	"github.com/joho/godotenv"
 
 	"github.com/MarioCerulo/mapreduce/engine"
 	"github.com/MarioCerulo/mapreduce/engine/types"
@@ -43,21 +44,30 @@ func (WordCountJob) Reduce(key string, vals []string) string {
 }
 
 func main() {
-	c, err := rpc.NewClient("127.0.0.1:50051")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer c.Close()
+	godotenv.Load()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
+	c, err := rpc.NewClient("127.0.0.1:50051")
+	if err != nil {
+		logger.Error("failed to create RPC client", slog.Any("err", err))
+		os.Exit(1)
+	}
+	defer c.Close()
 
 	w := engine.NewWorker(WordCountJob{}, logger)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := w.Run(ctx, c, storage.NewStorage("store")); err != nil && !errors.Is(err, context.Canceled) {
-		log.Fatal(err)
+	store, err := storage.NewRustFS("mapreduce")
+	if err != nil {
+		logger.Error("failed to create file store", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	if err := w.Run(ctx, c, store); err != nil && !errors.Is(err, context.Canceled) {
+		logger.Error("worker exited with error", slog.Any("err", err))
+		os.Exit(1)
 	}
 }

@@ -1,0 +1,17 @@
+services:
+  rustfs:
+    image: rustfs/rustfs:1.0.0-alpha.94
+    container_name: rustfs
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+      RUSTFS_CONSOLE_ENABLE: "true"
+    volumes:
+      - rustfs_data:/data
+    command: /data
+
+volumes:
+  rustfs_data:

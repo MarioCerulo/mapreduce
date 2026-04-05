@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
 	"log/slog"
 	"net"
 	"os"
@@ -20,13 +19,14 @@ func main() {
 	nReducers := flag.Int("reducers", 1, "Number of reducers")
 	flag.Parse()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
 
 	c, err := engine.NewCoordinator(input, *nReducers, logger)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("failed to create coordinator", slog.Any("err", err))
+		os.Exit(1)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -36,7 +36,8 @@ func main() {
 	addr := ":50051"
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("failed to create listener", slog.Any("err", err))
+		os.Exit(1)
 	}
 	server := grpc.NewServer()
 	coord := pb.NewServer(c)
