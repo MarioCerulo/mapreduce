@@ -49,7 +49,13 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
-	c, err := rpc.NewClient("127.0.0.1:50051")
+
+	addr := os.Getenv("COORDINATOR_ADDR")
+	if addr == "" {
+		addr = "localhost:50051"
+	}
+
+	c, err := rpc.NewClient(addr)
 	if err != nil {
 		logger.Error("failed to create RPC client", slog.Any("err", err))
 		os.Exit(1)

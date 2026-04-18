@@ -13,5 +13,28 @@ services:
       - rustfs_data:/data
     command: /data
 
+  coordinator:
+    build:
+      context: .
+      dockerfile: cmd/coordinator/Dockerfile
+    depends_on:
+      - rustfs
+
+  worker:
+    env_file:
+      - .env
+    environment:
+      COORDINATOR_ADDR: coordinator:50051
+      RUSTFS_ENDPOINT_URL: http://rustfs:9000
+    build:
+      context: .
+      dockerfile: cmd/worker/Dockerfile
+    depends_on:
+      - rustfs
+      - coordinator
+    deploy:
+      replicas: 2
+    
+
 volumes:
   rustfs_data:
