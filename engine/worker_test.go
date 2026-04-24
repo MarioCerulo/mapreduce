@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/MarioCerulo/mapreduce/engine"
 	"github.com/MarioCerulo/mapreduce/engine/types"
@@ -25,6 +26,10 @@ func (t *testClient) RequestTask(_ context.Context, _ string) (types.Task, error
 
 func (t *testClient) ReportCompletion(_ context.Context, taskID int) error {
 	t.completed++
+	return nil
+}
+
+func (t *testClient) Heartbeat(_ context.Context, workerID string) error {
 	return nil
 }
 
@@ -58,6 +63,8 @@ func (UppercaseJob) Reduce(key string, vals []string) string {
 	return vals[0]
 }
 
+const ttl = time.Second
+
 func TestWorker(t *testing.T) {
 	t.Run("map-reduce workflow completed", func(t *testing.T) {
 		c := &testClient{
@@ -81,7 +88,7 @@ func TestWorker(t *testing.T) {
 			store: make(map[string][]types.KeyValue),
 		}
 
-		worker := engine.NewWorker(UppercaseJob{}, newTestLogger())
+		worker := engine.NewWorker(UppercaseJob{}, ttl, newTestLogger())
 
 		if err := worker.Run(t.Context(), c, s); err != nil {
 			t.Fatal(err)

@@ -2,11 +2,14 @@ syntax = "proto3";
 
 package coordinator;
 
+import "google/protobuf/empty.proto";
+
 option go_package = "github.com/MarioCerulo/mapreduce/engine/rpc";
 
 service Coordinator {
   rpc RequestTask(TaskRequest) returns (TaskResponse);
   rpc ReportCompletion(Report) returns (Ack);
+  rpc Heartbeat(WorkerId) returns (google.protobuf.Empty);
 }
 
 message TaskRequest {
@@ -33,3 +36,8 @@ message Report {
 }
 
 message Ack {}
+
+message WorkerId {
+  string worker_id = 1;
+}
+

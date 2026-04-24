@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/MarioCerulo/mapreduce/engine"
 	"github.com/MarioCerulo/mapreduce/engine/types"
@@ -15,9 +16,21 @@ func newTestLogger() *slog.Logger {
 	return slog.New(slog.DiscardHandler)
 }
 
+func newTestHeartbeatConfig() engine.HeartbeatConfig {
+	return engine.HeartbeatConfig{
+		TTL:       time.Second,
+		MaxMissed: 3,
+	}
+}
+
 func TestCoordinator(t *testing.T) {
 	t.Run("complete workflow happy path", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"input.txt"}, 1, newTestLogger())
+		c, err := engine.NewCoordinator(
+			[]string{"input.txt"},
+			1,
+			newTestHeartbeatConfig(),
+			newTestLogger(),
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -42,7 +55,7 @@ func TestCoordinator(t *testing.T) {
 			t.Fatal(err)
 		}
 		if task.Kind != types.ReduceTask {
-			t.Fatal("Expected a reduce task, got a map task")
+			t.Fatal("expected a reduce task, got a map task")
 		}
 
 		if err := c.ReportCompletion(task.ID); err != nil {
@@ -50,12 +63,17 @@ func TestCoordinator(t *testing.T) {
 		}
 
 		if _, err := c.RequestTask("worker"); !errors.Is(err, engine.ErrDone) {
-			t.Fatalf("Expected {%v}, got {%v}", engine.ErrDone, err)
+			t.Fatalf("expected {%v}, got {%v}", engine.ErrDone, err)
 		}
 	})
 
 	t.Run("multiple chunks and reducers", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"input-0.txt", "input-1.txt"}, 2, newTestLogger())
+		c, err := engine.NewCoordinator(
+			[]string{"input-0.txt", "input-1.txt"},
+			2,
+			newTestHeartbeatConfig(),
+			newTestLogger(),
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -67,7 +85,7 @@ func TestCoordinator(t *testing.T) {
 		}
 
 		if mapT1.Kind != types.MapTask {
-			t.Fatalf("Expected a map task, got a reduce task: %+v", mapT1)
+			t.Fatalf("expected a map task, got a reduce task: %+v", mapT1)
 		}
 
 		if err := c.ReportCompletion(mapT1.ID); err != nil {
@@ -80,7 +98,7 @@ func TestCoordinator(t *testing.T) {
 		}
 
 		if mapT2.Kind != types.MapTask {
-			t.Fatalf("Expected a map task, got a reduce task: %+v", mapT1)
+			t.Fatalf("expected a map task, got a reduce task: %+v", mapT1)
 		}
 
 		if err := c.ReportCompletion(mapT2.ID); err != nil {
@@ -97,7 +115,7 @@ func TestCoordinator(t *testing.T) {
 		}
 
 		if reduceT1.Kind != types.ReduceTask {
-			t.Fatalf("Expected a reduce task, got a map task: %+v", reduceT1)
+			t.Fatalf("expected a reduce task, got a map task: %+v", reduceT1)
 		}
 		returned = append(returned, reduceT1.Files...)
 
@@ -107,7 +125,7 @@ func TestCoordinator(t *testing.T) {
 		}
 
 		if reduceT2.Kind != types.ReduceTask {
-			t.Fatalf("Expected a reduce task, got a map task: %+v", reduceT1)
+			t.Fatalf("expected a reduce task, got a map task: %+v", reduceT1)
 		}
 
 		returned = append(returned, reduceT2.Files...)
@@ -131,7 +149,12 @@ func TestCoordinator(t *testing.T) {
 	})
 
 	t.Run("out of order completion", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"chunk-0.txt", "chunk-1.txt"}, 1, newTestLogger())
+		c, err := engine.NewCoordinator(
+			[]string{"chunk-0.txt", "chunk-1.txt"},
+			1,
+			newTestHeartbeatConfig(),
+			newTestLogger(),
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -161,7 +184,7 @@ func TestCoordinator(t *testing.T) {
 		}
 
 		if reduceT.Kind != types.ReduceTask {
-			t.Fatal("Expected a reduce task, got a map task")
+			t.Fatal("expected a reduce task, got a map task")
 		}
 
 		expected := []string{"inter-0-0", "inter-1-0"}
@@ -174,7 +197,7 @@ func TestCoordinator(t *testing.T) {
 	})
 
 	t.Run("empty input slice", func(t *testing.T) {
-		_, err := engine.NewCoordinator([]string{}, 1, newTestLogger())
+		_, err := engine.NewCoordinator([]string{}, 1, newTestHeartbeatConfig(), newTestLogger())
 		if err == nil {
 			t.Fatal("expected an error, got <nil>")
 		}
@@ -182,19 +205,24 @@ func TestCoordinator(t *testing.T) {
 
 	t.Run("less than one reducer", func(t *testing.T) {
 		input := []string{"input.txt"}
-		_, err := engine.NewCoordinator(input, 0, newTestLogger())
+		_, err := engine.NewCoordinator(input, 0, newTestHeartbeatConfig(), newTestLogger())
 		if err == nil {
 			t.Fatal("expected an error, got <nil>")
 		}
 
-		_, err = engine.NewCoordinator(input, -1, newTestLogger())
+		_, err = engine.NewCoordinator(input, -1, newTestHeartbeatConfig(), newTestLogger())
 		if err == nil {
 			t.Fatal("expected an error, got <nil>")
 		}
 	})
 
 	t.Run("return wait on empty pending task list", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"input.txt"}, 1, newTestLogger())
+		c, err := engine.NewCoordinator(
+			[]string{"input.txt"},
+			1,
+			newTestHeartbeatConfig(),
+			newTestLogger(),
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -221,12 +249,17 @@ func TestCoordinator(t *testing.T) {
 		}
 
 		if _, err := c.RequestTask("worker-1"); !errors.Is(err, engine.ErrWait) {
-			t.Fatalf("Expected {%v}, got {%v}", engine.ErrWait, err)
+			t.Fatalf("expected {%v}, got {%v}", engine.ErrWait, err)
 		}
 	})
 
 	t.Run("return error on wrong task id report", func(t *testing.T) {
-		c, err := engine.NewCoordinator([]string{"input.txt"}, 1, newTestLogger())
+		c, err := engine.NewCoordinator(
+			[]string{"input.txt"},
+			1,
+			newTestHeartbeatConfig(),
+			newTestLogger(),
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -234,7 +267,7 @@ func TestCoordinator(t *testing.T) {
 
 		c.RequestTask("worker")
 		if err := c.ReportCompletion(3); err == nil {
-			t.Fatal("Expected to get an error")
+			t.Fatal("expected to get an error")
 		}
 	})
 }

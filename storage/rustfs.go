@@ -17,11 +17,19 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+// RustFS is an [engine.Storage] implementation backed by an S3-compatible
+// object store.
 type RustFS struct {
 	client *s3.Client
 	bucket string
 }
 
+// NewRustFS returns a RustFS client targeting bucketName.
+// Credentials and endpoints are read from environment variables:
+// - RUSTFS_REGION
+// - RUSTFS_ACCESS_KEY_ID
+// - RUSTFS_SECRET_ACCESS_KEY
+// - RUSTFS_ENDPOINT_URL
 func NewRustFS(bucketName string) (*RustFS, error) {
 	region := os.Getenv("RUSTFS_REGION")
 	accessKeyID := os.Getenv("RUSTFS_ACCESS_KEY_ID")
@@ -64,6 +72,7 @@ func (s *RustFS) LoadInputFile(fileName string) (string, error) {
 	}
 
 	data, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	if err != nil {
 		return "", err
 	}
@@ -100,11 +109,12 @@ func (s *RustFS) Save(fileName string, kvs []types.KeyValue) error {
 	for _, kv := range kvs {
 		fmt.Fprintf(&buf, "%s %s\n", kv.Key, kv.Value)
 	}
+	bufBytes := buf.Bytes()
 	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:        aws.String(s.bucket),
 		Key:           aws.String(fileName),
-		Body:          bytes.NewReader(buf.Bytes()),
-		ContentLength: aws.Int64(int64(len(buf.Bytes()))),
+		Body:          bytes.NewReader(bufBytes),
+		ContentLength: aws.Int64(int64(len(bufBytes))),
 	})
 	return err
 }

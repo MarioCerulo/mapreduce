@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/MarioCerulo/mapreduce/engine"
 	pb "github.com/MarioCerulo/mapreduce/rpc"
@@ -23,7 +24,11 @@ func main() {
 		Level: slog.LevelDebug,
 	}))
 
-	c, err := engine.NewCoordinator(input, *nReducers, logger)
+	hbConfig := engine.HeartbeatConfig{
+		TTL:       1 * time.Second,
+		MaxMissed: 3,
+	}
+	c, err := engine.NewCoordinator(input, *nReducers, hbConfig, logger)
 	if err != nil {
 		logger.Error("failed to create coordinator", slog.Any("err", err))
 		os.Exit(1)
@@ -34,7 +39,7 @@ func main() {
 	go c.Run(ctx)
 
 	addr := ":50051"
-	lis, err := net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		logger.Error("failed to create listener", slog.Any("err", err))
 		os.Exit(1)

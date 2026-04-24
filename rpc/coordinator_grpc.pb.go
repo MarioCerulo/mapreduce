@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	Coordinator_RequestTask_FullMethodName      = "/coordinator.Coordinator/RequestTask"
 	Coordinator_ReportCompletion_FullMethodName = "/coordinator.Coordinator/ReportCompletion"
+	Coordinator_Heartbeat_FullMethodName        = "/coordinator.Coordinator/Heartbeat"
 )
 
 // CoordinatorClient is the client API for Coordinator service.
@@ -29,6 +31,7 @@ const (
 type CoordinatorClient interface {
 	RequestTask(ctx context.Context, in *TaskRequest, opts ...grpc.CallOption) (*TaskResponse, error)
 	ReportCompletion(ctx context.Context, in *Report, opts ...grpc.CallOption) (*Ack, error)
+	Heartbeat(ctx context.Context, in *WorkerId, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type coordinatorClient struct {
@@ -59,12 +62,23 @@ func (c *coordinatorClient) ReportCompletion(ctx context.Context, in *Report, op
 	return out, nil
 }
 
+func (c *coordinatorClient) Heartbeat(ctx context.Context, in *WorkerId, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Coordinator_Heartbeat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CoordinatorServer is the server API for Coordinator service.
 // All implementations must embed UnimplementedCoordinatorServer
 // for forward compatibility.
 type CoordinatorServer interface {
 	RequestTask(context.Context, *TaskRequest) (*TaskResponse, error)
 	ReportCompletion(context.Context, *Report) (*Ack, error)
+	Heartbeat(context.Context, *WorkerId) (*emptypb.Empty, error)
 	mustEmbedUnimplementedCoordinatorServer()
 }
 
@@ -80,6 +94,9 @@ func (UnimplementedCoordinatorServer) RequestTask(context.Context, *TaskRequest)
 }
 func (UnimplementedCoordinatorServer) ReportCompletion(context.Context, *Report) (*Ack, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReportCompletion not implemented")
+}
+func (UnimplementedCoordinatorServer) Heartbeat(context.Context, *WorkerId) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method Heartbeat not implemented")
 }
 func (UnimplementedCoordinatorServer) mustEmbedUnimplementedCoordinatorServer() {}
 func (UnimplementedCoordinatorServer) testEmbeddedByValue()                     {}
@@ -138,6 +155,24 @@ func _Coordinator_ReportCompletion_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Coordinator_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WorkerId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoordinatorServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Coordinator_Heartbeat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoordinatorServer).Heartbeat(ctx, req.(*WorkerId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Coordinator_ServiceDesc is the grpc.ServiceDesc for Coordinator service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +187,10 @@ var Coordinator_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReportCompletion",
 			Handler:    _Coordinator_ReportCompletion_Handler,
+		},
+		{
+			MethodName: "Heartbeat",
+			Handler:    _Coordinator_Heartbeat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

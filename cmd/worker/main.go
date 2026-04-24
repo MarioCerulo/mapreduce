@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 	"unicode"
 
 	"github.com/joho/godotenv"
@@ -62,7 +63,7 @@ func main() {
 	}
 	defer c.Close()
 
-	w := engine.NewWorker(WordCountJob{}, logger)
+	w := engine.NewWorker(WordCountJob{}, time.Second, logger)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

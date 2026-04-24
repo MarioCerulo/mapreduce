@@ -9,6 +9,7 @@ package rpc
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -268,11 +269,55 @@ func (*Ack) Descriptor() ([]byte, []int) {
 	return file_coordinator_proto_rawDescGZIP(), []int{3}
 }
 
+type WorkerId struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkerId      string                 `protobuf:"bytes,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkerId) Reset() {
+	*x = WorkerId{}
+	mi := &file_coordinator_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkerId) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkerId) ProtoMessage() {}
+
+func (x *WorkerId) ProtoReflect() protoreflect.Message {
+	mi := &file_coordinator_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkerId.ProtoReflect.Descriptor instead.
+func (*WorkerId) Descriptor() ([]byte, []int) {
+	return file_coordinator_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *WorkerId) GetWorkerId() string {
+	if x != nil {
+		return x.WorkerId
+	}
+	return ""
+}
+
 var File_coordinator_proto protoreflect.FileDescriptor
 
 const file_coordinator_proto_rawDesc = "" +
 	"\n" +
-	"\x11coordinator.proto\x12\vcoordinator\"*\n" +
+	"\x11coordinator.proto\x12\vcoordinator\x1a\x1bgoogle/protobuf/empty.proto\"*\n" +
 	"\vTaskRequest\x12\x1b\n" +
 	"\tworker_id\x18\x01 \x01(\tR\bworkerId\"\x9b\x01\n" +
 	"\fTaskResponse\x12\x17\n" +
@@ -284,16 +329,19 @@ const file_coordinator_proto_rawDesc = "" +
 	"\v_n_reducers\"!\n" +
 	"\x06Report\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x05R\x06taskId\"\x05\n" +
-	"\x03Ack*q\n" +
+	"\x03Ack\"'\n" +
+	"\bWorkerId\x12\x1b\n" +
+	"\tworker_id\x18\x01 \x01(\tR\bworkerId*q\n" +
 	"\bTaskType\x12\x18\n" +
 	"\x14TASKTYPE_UNSPECIFIED\x10\x00\x12\x10\n" +
 	"\fTASKTYPE_MAP\x10\x01\x12\x13\n" +
 	"\x0fTASKTYPE_REDUCE\x10\x02\x12\x11\n" +
 	"\rTASKTYPE_WAIT\x10\x03\x12\x11\n" +
-	"\rTASKTYPE_DONE\x10\x042\x8c\x01\n" +
+	"\rTASKTYPE_DONE\x10\x042\xc8\x01\n" +
 	"\vCoordinator\x12B\n" +
 	"\vRequestTask\x12\x18.coordinator.TaskRequest\x1a\x19.coordinator.TaskResponse\x129\n" +
-	"\x10ReportCompletion\x12\x13.coordinator.Report\x1a\x10.coordinator.AckB-Z+github.com/MarioCerulo/mapreduce/engine/rpcb\x06proto3"
+	"\x10ReportCompletion\x12\x13.coordinator.Report\x1a\x10.coordinator.Ack\x12:\n" +
+	"\tHeartbeat\x12\x15.coordinator.WorkerId\x1a\x16.google.protobuf.EmptyB-Z+github.com/MarioCerulo/mapreduce/engine/rpcb\x06proto3"
 
 var (
 	file_coordinator_proto_rawDescOnce sync.Once
@@ -308,22 +356,26 @@ func file_coordinator_proto_rawDescGZIP() []byte {
 }
 
 var file_coordinator_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_coordinator_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_coordinator_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_coordinator_proto_goTypes = []any{
-	(TaskType)(0),        // 0: coordinator.TaskType
-	(*TaskRequest)(nil),  // 1: coordinator.TaskRequest
-	(*TaskResponse)(nil), // 2: coordinator.TaskResponse
-	(*Report)(nil),       // 3: coordinator.Report
-	(*Ack)(nil),          // 4: coordinator.Ack
+	(TaskType)(0),         // 0: coordinator.TaskType
+	(*TaskRequest)(nil),   // 1: coordinator.TaskRequest
+	(*TaskResponse)(nil),  // 2: coordinator.TaskResponse
+	(*Report)(nil),        // 3: coordinator.Report
+	(*Ack)(nil),           // 4: coordinator.Ack
+	(*WorkerId)(nil),      // 5: coordinator.WorkerId
+	(*emptypb.Empty)(nil), // 6: google.protobuf.Empty
 }
 var file_coordinator_proto_depIdxs = []int32{
 	0, // 0: coordinator.TaskResponse.type:type_name -> coordinator.TaskType
 	1, // 1: coordinator.Coordinator.RequestTask:input_type -> coordinator.TaskRequest
 	3, // 2: coordinator.Coordinator.ReportCompletion:input_type -> coordinator.Report
-	2, // 3: coordinator.Coordinator.RequestTask:output_type -> coordinator.TaskResponse
-	4, // 4: coordinator.Coordinator.ReportCompletion:output_type -> coordinator.Ack
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	5, // 3: coordinator.Coordinator.Heartbeat:input_type -> coordinator.WorkerId
+	2, // 4: coordinator.Coordinator.RequestTask:output_type -> coordinator.TaskResponse
+	4, // 5: coordinator.Coordinator.ReportCompletion:output_type -> coordinator.Ack
+	6, // 6: coordinator.Coordinator.Heartbeat:output_type -> google.protobuf.Empty
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -341,7 +393,7 @@ func file_coordinator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_coordinator_proto_rawDesc), len(file_coordinator_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

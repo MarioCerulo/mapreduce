@@ -6,13 +6,16 @@ import (
 
 	"github.com/MarioCerulo/mapreduce/engine"
 	"github.com/MarioCerulo/mapreduce/engine/types"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+// Server bridges incoming gRPC calls to an [engine.Coordinator].
 type Server struct {
 	UnimplementedCoordinatorServer
 	coordinator *engine.Coordinator
 }
 
+// NewServer wraps c as a gRPC-compatible coordinator server.
 func NewServer(c *engine.Coordinator) *Server {
 	return &Server{
 		coordinator: c,
@@ -69,4 +72,15 @@ func (s *Server) ReportCompletion(ctx context.Context, report *Report) (*Ack, er
 		}
 		return &Ack{}, nil
 	}
+}
+
+func (s *Server) Heartbeat(ctx context.Context, workerID *WorkerId) (*emptypb.Empty, error) {
+	select {
+	case <-ctx.Done():
+		return &emptypb.Empty{}, ctx.Err()
+	default:
+		s.coordinator.Heartbeat(workerID.WorkerId)
+	}
+
+	return &emptypb.Empty{}, nil
 }

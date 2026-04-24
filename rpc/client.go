@@ -9,11 +9,14 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Client is a gRPC client for the coordinator service.
+// It implements [engine.CoordinatorClient]
 type Client struct {
 	conn   *grpc.ClientConn
 	client CoordinatorClient
 }
 
+// NewClient dials the coordinator at serverAddr and returns a ready-to-use Client.
 func NewClient(serverAddr string) (*Client, error) {
 	conn, err := grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -60,6 +63,12 @@ func (c *Client) ReportCompletion(ctx context.Context, taskID int) error {
 	return err
 }
 
+func (c *Client) Heartbeat(ctx context.Context, workerID string) error {
+	_, err := c.client.Heartbeat(ctx, &WorkerId{WorkerId: workerID})
+	return err
+}
+
+// Close tears down the underlying gRPC connection.
 func (c *Client) Close() error {
 	return c.conn.Close()
 }
