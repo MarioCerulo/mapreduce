@@ -67,7 +67,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	store, err := storage.NewRustFS("mapreduce")
+	store, err := storage.NewRustFS(ctx, "mapreduce")
 	if err != nil {
 		logger.Error("failed to create file store", slog.Any("err", err))
 		os.Exit(1)

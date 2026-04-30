@@ -36,7 +36,11 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	go c.Run(ctx)
+
+	coordCtx, coordCancel := context.WithCancel(context.Background())
+	defer coordCancel()
+
+	go c.Run(coordCtx)
 
 	addr := ":50051"
 	lis, err := net.Listen("tcp", addr)
@@ -50,7 +54,7 @@ func main() {
 	// handle graceful shutdown
 	go func() {
 		<-ctx.Done()
-		server.GracefulStop()
+		server.GracefulStop() // drain in-flight RPCs
 		logger.Info("server_stopped")
 	}()
 

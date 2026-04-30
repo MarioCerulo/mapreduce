@@ -38,15 +38,15 @@ type testStorage struct {
 	store map[string][]types.KeyValue
 }
 
-func (s *testStorage) LoadInputFile(filePath string) (string, error) {
+func (s *testStorage) LoadInputFile(_ context.Context, filePath string) (string, error) {
 	return s.input, nil
 }
 
-func (s *testStorage) LoadIntermediateFile(filePath string) ([]types.KeyValue, error) {
+func (s *testStorage) LoadIntermediateFile(_ context.Context, filePath string) ([]types.KeyValue, error) {
 	return s.store[filePath], nil
 }
 
-func (s *testStorage) Save(filePath string, content []types.KeyValue) error {
+func (s *testStorage) Save(_ context.Context, filePath string, content []types.KeyValue) error {
 	s.store[filePath] = append(s.store[filePath], content...)
 	return nil
 }

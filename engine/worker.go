@@ -25,9 +25,9 @@ type CoordinatorClient interface {
 // Storage abstracts file I/O for input, intermediate, and output data.
 // Implementation may target local disk, object storage, or any other backend.
 type Storage interface {
-	LoadInputFile(filePath string) (string, error)
-	LoadIntermediateFile(filePath string) ([]types.KeyValue, error)
-	Save(filePath string, content []types.KeyValue) error
+	LoadInputFile(ctx context.Context, filePath string) (string, error)
+	LoadIntermediateFile(ctx context.Context, filePath string) ([]types.KeyValue, error)
+	Save(ctx context.Context, filePath string, content []types.KeyValue) error
 }
 
 // Worker executes map and reduce tasks assigned by the coordinator.
@@ -107,7 +107,7 @@ func (w Worker) Run(ctx context.Context, client CoordinatorClient, store Storage
 
 		switch task.Kind {
 		case types.MapTask:
-			content, err := store.LoadInputFile(task.Files[0])
+			content, err := store.LoadInputFile(ctx, task.Files[0])
 			if err != nil {
 				return err
 			}
@@ -120,7 +120,7 @@ func (w Worker) Run(ctx context.Context, client CoordinatorClient, store Storage
 			}
 
 			for bucket, kvs := range buckets {
-				if err := store.Save(fmt.Sprintf("inter-%d-%d", task.ID, bucket), kvs); err != nil {
+				if err := store.Save(ctx, fmt.Sprintf("inter-%d-%d", task.ID, bucket), kvs); err != nil {
 					return err
 				}
 			}
@@ -132,7 +132,7 @@ func (w Worker) Run(ctx context.Context, client CoordinatorClient, store Storage
 		case types.ReduceTask:
 			content := make([]types.KeyValue, 0, len(task.Files))
 			for _, file := range task.Files {
-				kvs, err := store.LoadIntermediateFile(file)
+				kvs, err := store.LoadIntermediateFile(ctx, file)
 				if err != nil {
 					return err
 				}
@@ -155,7 +155,7 @@ func (w Worker) Run(ctx context.Context, client CoordinatorClient, store Storage
 				res = append(res, types.KeyValue{Key: current, Value: w.job.Reduce(current, vals)})
 			}
 
-			if err := store.Save(fmt.Sprintf("mr-%d", task.ID), res); err != nil {
+			if err := store.Save(ctx, fmt.Sprintf("mr-%d", task.ID), res); err != nil {
 				return err
 			}
 

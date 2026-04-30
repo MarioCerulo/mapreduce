@@ -30,13 +30,14 @@ type RustFS struct {
 // - RUSTFS_ACCESS_KEY_ID
 // - RUSTFS_SECRET_ACCESS_KEY
 // - RUSTFS_ENDPOINT_URL
-func NewRustFS(bucketName string) (*RustFS, error) {
+func NewRustFS(ctx context.Context, bucketName string) (*RustFS, error) {
 	region := os.Getenv("RUSTFS_REGION")
 	accessKeyID := os.Getenv("RUSTFS_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("RUSTFS_SECRET_ACCESS_KEY")
 	endpoint := os.Getenv("RUSTFS_ENDPOINT_URL")
 
-	cfg, err := config.LoadDefaultConfig(context.Background(),
+	cfg, err := config.LoadDefaultConfig(
+		ctx,
 		config.WithRegion(region),
 		config.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(
@@ -61,36 +62,37 @@ func NewRustFS(bucketName string) (*RustFS, error) {
 	}, nil
 }
 
-func (s *RustFS) LoadInputFile(fileName string) (string, error) {
-	resp, err := s.client.GetObject(context.Background(), &s3.GetObjectInput{
+func (s *RustFS) LoadInputFile(ctx context.Context, fileName string) (string, error) {
+	resp, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
 	})
-
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	data, err := io.ReadAll(resp.Body)
-	defer resp.Body.Close()
 	if err != nil {
 		return "", err
 	}
 	return string(data), nil
 }
 
-func (s *RustFS) LoadIntermediateFile(fileName string) ([]types.KeyValue, error) {
-	resp, err := s.client.GetObject(context.Background(), &s3.GetObjectInput{
+func (s *RustFS) LoadIntermediateFile(ctx context.Context, fileName string) ([]types.KeyValue, error) {
+	resp, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
 	})
-
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var kvs []types.KeyValue
+
 	scanner := bufio.NewScanner(resp.Body)
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		pair := strings.SplitN(line, " ", 2)
@@ -104,13 +106,13 @@ func (s *RustFS) LoadIntermediateFile(fileName string) ([]types.KeyValue, error)
 	return kvs, scanner.Err()
 }
 
-func (s *RustFS) Save(fileName string, kvs []types.KeyValue) error {
+func (s *RustFS) Save(ctx context.Context, fileName string, kvs []types.KeyValue) error {
 	var buf bytes.Buffer
 	for _, kv := range kvs {
 		fmt.Fprintf(&buf, "%s %s\n", kv.Key, kv.Value)
 	}
 	bufBytes := buf.Bytes()
-	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(s.bucket),
 		Key:           aws.String(fileName),
 		Body:          bytes.NewReader(bufBytes),
